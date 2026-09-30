@@ -1,0 +1,74 @@
+-- Disable achievement progress if lobby size is greater than 4 players.
+local orig__AchievmentManager = {
+	award               = AchievmentManager.award,
+	_give_reward        = AchievmentManager._give_reward,
+	award_progress      = AchievmentManager.award_progress,
+	award_steam         = AchievmentManager.award_steam,
+	steam_unlock_result = AchievmentManager.steam_unlock_result,
+	award_epic			= AchievmentManager.award_epic,
+	epic_unlock_result	= AchievmentManager.epic_unlock_result
+}
+
+
+function AchievmentManager:disable_achievements()
+	-- `managers.network:session()` is here to prevent false positive, you should
+	-- be able to unlock achievements while not in a game and have the mod enabled
+	local m_session = managers.network:session()
+
+	local isRegularAmount = m_session and (m_session:amount_of_players() > 4)
+	-- Covers the case where fewer than 5 players joined a lobby that is set up for more,
+	-- which the game's own `tweak_data.max_players` check (`amount_of_players`) misses
+	local isBigLobbySize  = m_session and (BigLobbyGlobals:num_player_slots() > 4)
+	local isRegularSize   = m_session and BigLobbyGlobals:is_small_lobby()
+
+	return isRegularAmount or isBigLobbySize or isRegularSize
+end
+
+
+function AchievmentManager.award(self, ...)
+	if not self:disable_achievements() then
+		orig__AchievmentManager.award(self, ...)
+	end
+end
+
+
+function AchievmentManager._give_reward(self, ...)
+	if not self:disable_achievements() then
+		orig__AchievmentManager._give_reward(self, ...)
+	end
+end
+
+
+function AchievmentManager.award_progress(self, ...)
+	if not self:disable_achievements() then
+		orig__AchievmentManager.award_progress(self, ...)
+	end
+end
+
+
+function AchievmentManager.award_steam(self, ...)
+	if not self:disable_achievements() then
+		orig__AchievmentManager.award_steam(self, ...)
+	end
+end
+
+
+-- Original is defined in dot notation, presumably doesn't expect self to be
+-- passed in as first param?
+function AchievmentManager.steam_unlock_result(...)
+	if not AchievmentManager:disable_achievements() then
+		orig__AchievmentManager.steam_unlock_result(...)
+	end
+end
+
+function AchievmentManager:award_epic(...)
+	if not self:disable_achievements() then
+		orig__AchievmentManager.award_epic(...)
+	end
+end
+
+function AchievmentManager.epic_unlock_result(...)
+	if not AchievmentManager:disable_achievements() then
+		orig__AchievmentManager.epic_unlock_result(...)
+	end
+end
